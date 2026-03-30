@@ -1,0 +1,56 @@
+simulation:
+  name: "chisinau-traffic-sim"
+  step_length: 1.0
+  total_steps: 7200        # 2 hours of simulation
+  seed: 42
+  warmup_steps: 300        # steps before stats collection begins
+
+sumo:
+  binary: "sumo"           # change to "sumo-gui" for visual mode
+  network_file: "maps/chisinau.net.xml"
+  route_file: "maps/chisinau.rou.xml"
+  additional_files:
+    - "maps/chisinau.poly.xml"
+
+city:
+  name: "Chișinău, Moldova"
+  # Bounding box: centre of Chișinău municipality
+  bbox:
+    north: 47.0800
+    south: 46.9600
+    east:  28.9500
+    west:  28.7900
+
+traffic:
+  spawn_interval: 10        # spawn a batch of vehicles every N steps
+  batch_size: 5             # vehicles per batch
+  vehicle_types:
+    - id: "car"
+      accel: 2.6
+      decel: 4.5
+      max_speed: 13.89      # 50 km/h — urban limit
+      length: 4.5
+      color: "255,255,0"
+    - id: "bus"
+      accel: 1.2
+      decel: 3.0
+      max_speed: 11.11      # 40 km/h
+      length: 12.0
+      color: "0,0,255"
+    - id: "truck"
+      accel: 1.0
+      decel: 3.5
+      max_speed: 11.11
+      length: 8.0
+      color: "255,128,0"
+
+traffic_lights:
+  adaptive: true
+  min_green_time: 10        # seconds
+  max_green_time: 90        # seconds
+  congestion_threshold: 8   # vehicles waiting before phase extension
+
+output:
+  statistics_interval: 60   # steps between stats snapshots
+  output_dir: "data/output"
+  log_dir: "data/logs"
