@@ -14,16 +14,23 @@ sumo:
 
 city:
   name: "Chișinău, Moldova"
-  # Bounding box: centre of Chișinău municipality
+  # Bounding box: centre of Chișinău (~5x5 km — Overpass /api/map limits)
   bbox:
-    north: 47.0800
-    south: 46.9600
-    east:  28.9500
-    west:  28.7900
+    north: 47.0450
+    south: 47.0000
+    east:  28.8700
+    west:  28.8100
 
 traffic:
   spawn_interval: 10        # spawn a batch of vehicles every N steps
   batch_size: 5             # vehicles per batch
+  persistence:
+    never_despawn: true         # loop arrived vehicles with a new destination
+    disable_teleport: true      # pass --time-to-teleport -1 to SUMO
+    blocked_reroute:
+      enabled: true
+      speed_threshold: 0.3      # m/s; below this a vehicle is considered stuck
+      patience_steps: 15        # stuck steps before rerouteTraveltime() fires
   vehicle_types:
     - id: "car"
       accel: 2.6

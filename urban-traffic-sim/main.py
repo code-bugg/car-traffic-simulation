@@ -12,7 +12,9 @@ Usage:
 
 import argparse
 import logging
+import runpy
 import sys
+from pathlib import Path
 
 from src.utils.config import load_config
 from src.utils.logger import setup_logger
@@ -31,11 +33,20 @@ def parse_args():
                    help="Override total simulation steps")
     p.add_argument("--debug", action="store_true",
                    help="Set log level to DEBUG")
+    p.add_argument("--edit", action="store_true",
+                   help="Open NETEDIT on the active network and exit")
     return p.parse_args()
 
 
 def main():
     args = parse_args()
+
+    if args.edit:
+        editor = Path(__file__).parent / "scripts" / "edit_network.py"
+        sys.argv = [str(editor), "--config", args.config]
+        runpy.run_path(str(editor), run_name="__main__")
+        return
+
     cfg = load_config(args.config)
 
     setup_logger(

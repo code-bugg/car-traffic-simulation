@@ -18,6 +18,7 @@ from src.agents.spawner import VehicleSpawner
 from src.simulation.statistics import StatisticsCollector
 from src.simulation.vehicle_type_loader import VehicleTypeLoader
 from src.traffic_control.adaptive_controller import AdaptiveTrafficLightController
+from src.simulation.persistence import VehiclePersistenceController
 
 logger = logging.getLogger(__name__)
 
@@ -35,14 +36,16 @@ class SimulationRunner:
         self.stats: StatisticsCollector | None = None
         self.spawner: VehicleSpawner | None = None
         self.tl_ctrl: AdaptiveTrafficLightController | None = None
+        self.persistence: VehiclePersistenceController | None = None
 
     # ── lifecycle ────────────────────────────────────────────────────
 
     def start(self) -> None:
         sumo_cfg = self.config["sumo"]
 
-        # Build sumo command
-        # Build sumo command
+        persistence_cfg = self.config.get("traffic", {}).get("persistence", {}) or {}
+        teleport_value = "-1" if persistence_cfg.get("disable_teleport", False) else "300"
+
         cmd = [
             sumo_cfg["binary"],
             "--net-file",    sumo_cfg["network_file"],
@@ -51,8 +54,8 @@ class SimulationRunner:
             "--seed",        str(self.config["simulation"]["seed"]),
             "--no-step-log", "true",
             "--collision.action", "warn",
-            "--time-to-teleport", "300",
-            "--ignore-route-errors", "true",  # <--- LINIA NOU ADĂUGATĂ
+            "--time-to-teleport", teleport_value,
+            "--ignore-route-errors", "true",
         ]
         
         additional = sumo_cfg.get("additional_files", [])
@@ -77,6 +80,8 @@ class SimulationRunner:
         if self.config["traffic_lights"].get("adaptive", False):
             self.tl_ctrl = AdaptiveTrafficLightController(self.config)
             self.tl_ctrl.initialise()
+
+        self.persistence = VehiclePersistenceController(self.config, self.spawner)
 
     def run(self) -> None:
         if not self._running:
@@ -107,11 +112,15 @@ class SimulationRunner:
         # 1. Spawn new vehicles
         self.spawner.step(self.step_num)
 
-        # 2. Adaptive traffic lights
+        # 2. Loop arrivals / reroute stuck vehicles (never-despawn)
+        if self.persistence:
+            self.persistence.step(self.step_num)
+
+        # 3. Adaptive traffic lights
         if self.tl_ctrl:
             self.tl_ctrl.step()
 
-        # 3. Collect stats (skip warmup)
+        # 4. Collect stats (skip warmup)
         if self.step_num >= self.warmup_steps:
             self.stats.step(self.step_num)
 

@@ -39,8 +39,9 @@ def download_osm(bbox: dict, out_path: Path) -> None:
     params = {
         "bbox": f"{bbox['west']},{bbox['south']},{bbox['east']},{bbox['north']}"
     }
+    headers = {"User-Agent": "urban-traffic-sim/1.0 (educational project)"}
     logger.info("Downloading OSM data for bbox %s ...", params["bbox"])
-    response = requests.get(OVERPASS_URL, params=params, timeout=120)
+    response = requests.get(OVERPASS_URL, params=params, headers=headers, timeout=180)
     response.raise_for_status()
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,14 +80,18 @@ def convert_to_sumo(osm_path: Path, net_path: Path) -> None:
     logger.info("Network saved → %s", net_path)
 
 
-def generate_routes(net_path: Path, rou_path: Path, cfg: dict) -> None:
+def generate_routes(net_path: Path, rou_path: Path, cfg: dict, force: bool = False) -> None:
     """
     Generate random routes using randomTrips.py (ships with SUMO).
     Falls back to a minimal hand-written route file if SUMO_HOME is unset.
+    Pass force=True to regenerate even when the file already exists.
     """
-    if rou_path.exists():
+    if rou_path.exists() and not force:
         logger.info("Route file already exists, skipping: %s", rou_path)
         return
+    if rou_path.exists() and force:
+        logger.info("Removing existing route file for regeneration: %s", rou_path)
+        rou_path.unlink()
 
     sumo_home = os.environ.get("SUMO_HOME")
     random_trips = None
